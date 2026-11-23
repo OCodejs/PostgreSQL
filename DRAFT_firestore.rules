@@ -1,0 +1,319 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Hardened Primitives ---
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function parentUserExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    // --- Entity Validation Helpers ---
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll([
+        'uid', 'email', 'displayName', 'twoFactorVerified', 'e2eeKeyVersion', 'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'uid', 'email', 'displayName', 'twoFactorVerified', 'e2eeKeyVersion', 'createdAt', 'updatedAt'
+      ])
+      && data.uid is string && data.uid == userId && isValidId(data.uid)
+      && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+      && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100
+      && data.twoFactorVerified is bool
+      && data.e2eeKeyVersion is int && data.e2eeKeyVersion >= 1 && data.e2eeKeyVersion <= 10000
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidClusterProfile(data, userId) {
+      return data.keys().hasAll([
+        'ownerId', 'brandName', 'repoSlug', 'pgVersion', 'dbName', 'dbUser',
+        'tlsMode', 'sharedBuffers', 'maxConnections', 'redisMaxMemory',
+        'redisEvictionPolicy', 's3Bucket', 's3Region', 'backupCron',
+        'retentionDays', 'slackChannel', 'minReplicas', 'maxReplicas',
+        'targetCpuPercent', 'enableE2EE', 'enforce2FA', 'appliedSqlIds',
+        'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'ownerId', 'brandName', 'repoSlug', 'pgVersion', 'dbName', 'dbUser',
+        'tlsMode', 'sharedBuffers', 'maxConnections', 'redisMaxMemory',
+        'redisEvictionPolicy', 's3Bucket', 's3Region', 'backupCron',
+        'retentionDays', 'slackChannel', 'minReplicas', 'maxReplicas',
+        'targetCpuPercent', 'enableE2EE', 'enforce2FA', 'appliedSqlIds',
+        'createdAt', 'updatedAt'
+      ])
+      && data.ownerId is string && data.ownerId == userId
+      && data.brandName is string && data.brandName.size() >= 1 && data.brandName.size() <= 64
+      && data.repoSlug is string && data.repoSlug.size() >= 1 && data.repoSlug.size() <= 120
+      && data.pgVersion in ['16', '17']
+      && data.dbName is string && data.dbName.size() >= 1 && data.dbName.size() <= 64
+      && data.dbUser is string && data.dbUser.size() >= 1 && data.dbUser.size() <= 64
+      && data.tlsMode in ['verify-full', 'verify-ca', 'require']
+      && data.sharedBuffers is string && data.sharedBuffers.size() >= 1 && data.sharedBuffers.size() <= 32
+      && data.maxConnections is int && data.maxConnections >= 10 && data.maxConnections <= 10000
+      && data.redisMaxMemory is string && data.redisMaxMemory.size() >= 1 && data.redisMaxMemory.size() <= 32
+      && data.redisEvictionPolicy in ['allkeys-lru', 'volatile-lru', 'allkeys-lfu']
+      && data.s3Bucket is string && data.s3Bucket.size() >= 1 && data.s3Bucket.size() <= 128
+      && data.s3Region is string && data.s3Region.size() >= 1 && data.s3Region.size() <= 64
+      && data.backupCron is string && data.backupCron.size() >= 1 && data.backupCron.size() <= 64
+      && data.retentionDays is int && data.retentionDays >= 1 && data.retentionDays <= 3650
+      && data.slackChannel is string && data.slackChannel.size() >= 1 && data.slackChannel.size() <= 80
+      && data.minReplicas is int && data.minReplicas >= 1 && data.minReplicas <= 64
+      && data.maxReplicas is int && data.maxReplicas >= data.minReplicas && data.maxReplicas <= 128
+      && data.targetCpuPercent is int && data.targetCpuPercent >= 10 && data.targetCpuPercent <= 95
+      && data.enableE2EE is bool
+      && data.enforce2FA is bool
+      && data.appliedSqlIds is list
+      && data.appliedSqlIds.size() <= 20
+      && (data.appliedSqlIds.size() == 0 || (data.appliedSqlIds[0] is string && data.appliedSqlIds[0].size() <= 64))
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidBackupSnapshot(data, userId) {
+      return data.keys().hasAll([
+        'ownerId', 'snapshotCode', 'backupType', 'sizeGb', 's3Path',
+        'encryption', 'durationSec', 'verified', 'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'ownerId', 'snapshotCode', 'backupType', 'sizeGb', 's3Path',
+        'encryption', 'durationSec', 'verified', 'createdAt', 'updatedAt'
+      ])
+      && data.ownerId is string && data.ownerId == userId
+      && data.snapshotCode is string && data.snapshotCode.size() >= 1 && data.snapshotCode.size() <= 64
+      && data.backupType in ['full', 'wal-incremental']
+      && (data.sizeGb is int || data.sizeGb is float) && data.sizeGb >= 0 && data.sizeGb <= 100000
+      && data.s3Path is string && data.s3Path.size() >= 5 && data.s3Path.size() <= 256
+      && data.encryption is string && data.encryption.size() >= 1 && data.encryption.size() <= 64
+      && data.durationSec is int && data.durationSec >= 0 && data.durationSec <= 86400
+      && data.verified is bool
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidApiKey(data, userId) {
+      return data.keys().hasAll([
+        'ownerId', 'name', 'prefix', 'scope', 'active', 'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'ownerId', 'name', 'prefix', 'scope', 'active', 'createdAt', 'updatedAt'
+      ])
+      && data.ownerId is string && data.ownerId == userId
+      && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
+      && data.prefix is string && data.prefix.size() >= 6 && data.prefix.size() <= 48
+      && data.scope in ['read:metrics', 'write:storage', 'admin:cluster']
+      && data.active is bool
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidSlackAlert(data, userId) {
+      return data.keys().hasAll([
+        'ownerId', 'severity', 'rule', 'messageVi', 'messageEn', 'channel', 'createdAt'
+      ])
+      && data.keys().hasOnly([
+        'ownerId', 'severity', 'rule', 'messageVi', 'messageEn', 'channel', 'createdAt'
+      ])
+      && data.ownerId is string && data.ownerId == userId
+      && data.severity in ['info', 'warning', 'critical']
+      && data.rule is string && data.rule.size() >= 1 && data.rule.size() <= 64
+      && data.messageVi is string && data.messageVi.size() >= 1 && data.messageVi.size() <= 300
+      && data.messageEn is string && data.messageEn.size() >= 1 && data.messageEn.size() <= 300
+      && data.channel is string && data.channel.size() >= 1 && data.channel.size() <= 80
+      && data.createdAt is timestamp;
+    }
+
+    function isValidTeamMember(data, userId) {
+      return data.keys().hasAll([
+        'ownerId', 'email', 'role', 'twoFactorEnabled', 'keyFingerprint', 'lastActive', 'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'ownerId', 'email', 'role', 'twoFactorEnabled', 'keyFingerprint', 'lastActive', 'createdAt', 'updatedAt'
+      ])
+      && data.ownerId is string && data.ownerId == userId
+      && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+      && data.role in ['Owner', 'SRE Admin', 'Developer']
+      && data.twoFactorEnabled is bool
+      && data.keyFingerprint is string && data.keyFingerprint.size() >= 1 && data.keyFingerprint.size() <= 64
+      && data.lastActive is string && data.lastActive.size() >= 1 && data.lastActive.size() <= 64
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidIntegrationAudit(data, userId) {
+      return data.keys().hasAll([
+        'ownerId', 'channel', 'action', 'target', 'summary', 'status', 'createdAt'
+      ])
+      && data.keys().hasOnly([
+        'ownerId', 'channel', 'action', 'target', 'summary', 'status', 'createdAt'
+      ])
+      && data.ownerId is string && data.ownerId == userId
+      && data.channel in ['gmail', 'google-chat', 'github']
+      && data.action in ['incident-email', 'cluster-alert', 'workflow-dispatch']
+      && data.target is string && data.target.size() >= 1 && data.target.size() <= 180
+      && data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 280
+      && data.status in ['success', 'failed']
+      && data.createdAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'twoFactorVerified', 'e2eeKeyVersion', 'displayName', 'email', 'updatedAt'
+        ]);
+      allow delete: if false;
+
+      match /clusters/{clusterId} {
+        allow get: if isValidId(userId) && isValidId(clusterId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(clusterId)
+          && isOwner(userId)
+          && isValidClusterProfile(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && parentUserExists(userId);
+        allow update: if isValidId(userId) && isValidId(clusterId)
+          && isOwner(userId)
+          && isValidClusterProfile(incoming(), userId)
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'brandName', 'repoSlug', 'pgVersion', 'dbName', 'dbUser',
+            'tlsMode', 'sharedBuffers', 'maxConnections', 'redisMaxMemory',
+            'redisEvictionPolicy', 's3Bucket', 's3Region', 'backupCron',
+            'retentionDays', 'slackChannel', 'minReplicas', 'maxReplicas',
+            'targetCpuPercent', 'enableE2EE', 'enforce2FA', 'appliedSqlIds',
+            'updatedAt'
+          ])
+          && parentUserExists(userId);
+        allow delete: if isValidId(userId) && isValidId(clusterId) && isOwner(userId);
+      }
+
+      match /snapshots/{snapshotId} {
+        allow get: if isValidId(userId) && isValidId(snapshotId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(snapshotId)
+          && isOwner(userId)
+          && isValidBackupSnapshot(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && parentUserExists(userId);
+        allow update: if isValidId(userId) && isValidId(snapshotId)
+          && isOwner(userId)
+          && isValidBackupSnapshot(incoming(), userId)
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['verified', 'updatedAt'])
+          && parentUserExists(userId);
+        allow delete: if isValidId(userId) && isValidId(snapshotId) && isOwner(userId);
+      }
+
+      match /apiKeys/{keyId} {
+        allow get: if isValidId(userId) && isValidId(keyId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(keyId)
+          && isOwner(userId)
+          && isValidApiKey(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && parentUserExists(userId);
+        allow update: if isValidId(userId) && isValidId(keyId)
+          && isOwner(userId)
+          && isValidApiKey(incoming(), userId)
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['active', 'updatedAt'])
+          && parentUserExists(userId);
+        allow delete: if isValidId(userId) && isValidId(keyId) && isOwner(userId);
+      }
+
+      match /slackAlerts/{alertId} {
+        allow get: if isValidId(userId) && isValidId(alertId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(alertId)
+          && isOwner(userId)
+          && isValidSlackAlert(incoming(), userId)
+          && incoming().createdAt == request.time
+          && parentUserExists(userId);
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(alertId) && isOwner(userId);
+      }
+
+      match /teamMembers/{memberId} {
+        allow get: if isValidId(userId) && isValidId(memberId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(memberId)
+          && isOwner(userId)
+          && isValidTeamMember(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && parentUserExists(userId);
+        allow update: if isValidId(userId) && isValidId(memberId)
+          && isOwner(userId)
+          && isValidTeamMember(incoming(), userId)
+          && incoming().ownerId == existing().ownerId
+          && incoming().email == existing().email
+          && incoming().role == existing().role
+          && incoming().keyFingerprint == existing().keyFingerprint
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'twoFactorEnabled', 'lastActive', 'updatedAt'
+          ])
+          && parentUserExists(userId);
+        allow delete: if isValidId(userId) && isValidId(memberId) && isOwner(userId);
+      }
+
+      match /integrationAudits/{auditId} {
+        allow get: if isValidId(userId) && isValidId(auditId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(auditId)
+          && isOwner(userId)
+          && isValidIntegrationAudit(incoming(), userId)
+          && incoming().createdAt == request.time
+          && parentUserExists(userId);
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(auditId) && isOwner(userId);
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "ocodejs Infrastructure & PostgreSQL Studio",
+  "description": "Self-hosted distributed PostgreSQL, Docker Compose, TLS, Prometheus, Grafana, Redis, AWS S3 backup, CI/CD, and security control plane for ocodejs/ocodejs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

@@ -1,0 +1,213 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated operator profile and security posture for ocodejs Infrastructure Studio.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "twoFactorVerified": {
+          "type": "boolean"
+        },
+        "e2eeKeyVersion": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "displayName", "twoFactorVerified", "e2eeKeyVersion", "createdAt", "updatedAt"]
+    },
+    "ClusterProfile": {
+      "title": "ClusterProfile",
+      "description": "Parameterized self-hosted PostgreSQL, Redis, TLS, S3, and Slack cluster configuration.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "brandName": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "repoSlug": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "pgVersion": { "type": "string", "enum": ["16", "17"] },
+        "dbName": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "dbUser": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "tlsMode": { "type": "string", "enum": ["verify-full", "verify-ca", "require"] },
+        "sharedBuffers": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "maxConnections": { "type": "integer" },
+        "redisMaxMemory": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "redisEvictionPolicy": { "type": "string", "enum": ["allkeys-lru", "volatile-lru", "allkeys-lfu"] },
+        "s3Bucket": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "s3Region": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "backupCron": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "retentionDays": { "type": "integer" },
+        "slackChannel": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "minReplicas": { "type": "integer" },
+        "maxReplicas": { "type": "integer" },
+        "targetCpuPercent": { "type": "integer" },
+        "enableE2EE": { "type": "boolean" },
+        "enforce2FA": { "type": "boolean" },
+        "appliedSqlIds": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "ownerId",
+        "brandName",
+        "repoSlug",
+        "pgVersion",
+        "dbName",
+        "dbUser",
+        "tlsMode",
+        "sharedBuffers",
+        "maxConnections",
+        "redisMaxMemory",
+        "redisEvictionPolicy",
+        "s3Bucket",
+        "s3Region",
+        "backupCron",
+        "retentionDays",
+        "slackChannel",
+        "minReplicas",
+        "maxReplicas",
+        "targetCpuPercent",
+        "enableE2EE",
+        "enforce2FA",
+        "appliedSqlIds",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BackupSnapshot": {
+      "title": "BackupSnapshot",
+      "description": "Encrypted AWS S3 backup snapshot metadata for PostgreSQL HA cluster.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "snapshotCode": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "backupType": { "type": "string", "enum": ["full", "wal-incremental"] },
+        "sizeGb": { "type": "number" },
+        "s3Path": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "encryption": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "durationSec": { "type": "integer" },
+        "verified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "snapshotCode", "backupType", "sizeGb", "s3Path", "encryption", "durationSec", "verified", "createdAt", "updatedAt"]
+    },
+    "ApiKeyRecord": {
+      "title": "ApiKeyRecord",
+      "description": "Scoped third-party API key metadata for ocodejs REST & Webhook integration.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "prefix": { "type": "string", "minLength": 1, "maxLength": 48 },
+        "scope": { "type": "string", "enum": ["read:metrics", "write:storage", "admin:cluster"] },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "prefix", "scope", "active", "createdAt", "updatedAt"]
+    },
+    "SlackAlertRecord": {
+      "title": "SlackAlertRecord",
+      "description": "Incident and audit notification log routed to Slack.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "severity": { "type": "string", "enum": ["info", "warning", "critical"] },
+        "rule": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "messageVi": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "messageEn": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "channel": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "severity", "rule", "messageVi", "messageEn", "channel", "createdAt"]
+    },
+    "TeamMemberPosture": {
+      "title": "TeamMemberPosture",
+      "description": "Per-operator team member 2FA enrollment and public E2EE key fingerprint record.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "minLength": 3, "maxLength": 254 },
+        "role": { "type": "string", "enum": ["Owner", "SRE Admin", "Developer"] },
+        "twoFactorEnabled": { "type": "boolean" },
+        "keyFingerprint": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "lastActive": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "email", "role", "twoFactorEnabled", "keyFingerprint", "lastActive", "createdAt", "updatedAt"]
+    },
+    "IntegrationAudit": {
+      "title": "IntegrationAudit",
+      "description": "Metadata-only audit entry for Gmail incident emails, Google Chat alerts, and GitHub workflow dispatches.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "channel": { "type": "string", "enum": ["gmail", "google-chat", "github"] },
+        "action": { "type": "string", "enum": ["incident-email", "cluster-alert", "workflow-dispatch"] },
+        "target": { "type": "string", "minLength": 1, "maxLength": 180 },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 280 },
+        "status": { "type": "string", "enum": ["success", "failed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "channel", "action", "target", "summary", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private operator profile and 2FA/E2EE key state, accessible strictly to the owning user."
+    },
+    "/users/{userId}/clusters/{clusterId}": {
+      "schema": { "$ref": "#/entities/ClusterProfile" },
+      "description": "Persisted ocodejs cluster configurations and applied SQL optimization IDs."
+    },
+    "/users/{userId}/snapshots/{snapshotId}": {
+      "schema": { "$ref": "#/entities/BackupSnapshot" },
+      "description": "Persisted AWS S3 backup snapshot history and verification state."
+    },
+    "/users/{userId}/apiKeys/{keyId}": {
+      "schema": { "$ref": "#/entities/ApiKeyRecord" },
+      "description": "Persisted scoped API key metadata for third-party integrations."
+    },
+    "/users/{userId}/slackAlerts/{alertId}": {
+      "schema": { "$ref": "#/entities/SlackAlertRecord" },
+      "description": "Persisted Slack alert audit feed for cluster events."
+    },
+    "/users/{userId}/teamMembers/{memberId}": {
+      "schema": { "$ref": "#/entities/TeamMemberPosture" },
+      "description": "Persisted 2FA posture and E2EE public key fingerprints for operator team members."
+    },
+    "/users/{userId}/integrationAudits/{auditId}": {
+      "schema": { "$ref": "#/entities/IntegrationAudit" },
+      "description": "Immutable metadata audit log for Gmail incident reports, Google Chat alerts, and GitHub workflow triggers."
+    }
+  }
+}
