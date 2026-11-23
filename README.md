@@ -2,7 +2,7 @@
 
 > PostgreSQL operations dashboard and the staging-first control-plane foundation for OCodeJS.
 
-[![Control Plane CI](https://github.com/zskbot/PostgreSQL/actions/workflows/control-plane-ci.yml/badge.svg)](https://github.com/zskbot/PostgreSQL/actions/workflows/control-plane-ci.yml)
+[![Control Plane CI](https://github.com/OCodejs/PostgreSQL/actions/workflows/control-plane-ci.yml/badge.svg)](https://github.com/OCodejs/PostgreSQL/actions/workflows/control-plane-ci.yml)
 
 This repository contains two related but separately deployable parts:
 
@@ -320,4 +320,18 @@ Confirm the worker process is running, that it uses the same staging `DATABASE_U
 - [Worker lifecycle and isolation requirements](infra/worker/README.md)
 - [Control-plane service guide](services/control-plane/README.md)
 - [Security specification](security_spec.md)
-- [GitHub Actions](https://github.com/zskbot/PostgreSQL/actions)
+- [GitHub Actions](https://github.com/OCodejs/PostgreSQL/actions)
+
+
+## Unified Identity Service (Preview integration)
+
+The canonical Fastify + PostgreSQL identity implementation is now vendored under `services/identity` from [OCodejs/oauth](https://github.com/OCodejs/oauth). It is kept as a separately deployable service boundary alongside the existing PostgreSQL Control Plane.
+
+- [Identity service guide](services/identity/README.md)
+- Email/password, Argon2id, email verification, password reset, opaque HttpOnly sessions, CSRF and audit logs are included in source.
+- Identity migrations use `identity_schema_migrations`, separate from the Control Plane migration ledger.
+- The current Control Plane still verifies Firebase ID tokens. Firebase/Firestore and workspace owner UIDs remain unchanged during this Preview integration.
+- GitHub/Google upstream federation and an OIDC issuer are not yet implemented in the Node identity service. The existing Cloudflare D1 OAuth Worker remains a separate transitional runtime and is not automatically synchronized with PostgreSQL.
+- No identity data was copied, no database migration was executed, and no Production service was deployed by this source import.
+
+Do not switch consumers or disable Firebase until an isolated Preview database, CI, browser session flow, identity mapping and rollback plan have all been verified.
