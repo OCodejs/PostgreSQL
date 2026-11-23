@@ -237,7 +237,7 @@ const server = createServer(async (req, res) => {
 
     send(res, 404, { error: 'not_found' });
   } catch (error) {
-    const status = Number(error?.statusCode) || (error?.code === '23503' ? 404 : 500);
+    const status = Number(error?.statusCode) || (error?.message === 'DATABASE_URL is not configured' ? 503 : error?.code === '23503' ? 404 : 500);
     send(res, status, { error: status === 500 ? 'internal_error' : error.message });
   } finally {
     client?.release();
