@@ -28,8 +28,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: services/control-plane/package.json
       - name: Install service dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Check JavaScript syntax
