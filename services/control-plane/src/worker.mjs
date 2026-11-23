@@ -7,6 +7,7 @@ const pollMs = Math.min(30_000, Math.max(250, Number(process.env.WORKER_POLL_MS 
 let stopping = false;
 
 async function recoverExpiredLeases(client) {
+  await client.query(\`UPDATE jobs SET status = 'cancelled', updated_at = now(), finished_at = now() WHERE status = 'queued' AND cancel_requested_at IS NOT NULL\`);
   await client.query(`
     UPDATE jobs
     SET status = CASE WHEN attempts >= max_attempts THEN 'dead_letter' ELSE 'queued' END,
@@ -53,9 +54,12 @@ async function claimJob(client) {
 async function finishJob(client, job, status, result, errorMessage = null) {
   await client.query(`
     UPDATE jobs
-    SET status = $3, result = $4::jsonb, last_error = $5,
+    SET status = CASE WHEN $3 = 'failed' AND attempts < max_attempts THEN 'queued' ELSE CASE WHEN $3 = 'failed' THEN 'dead_letter' ELSE $3 END END,
+        result = $4::jsonb, last_error = $5,
+        available_at = CASE WHEN $3 = 'failed' AND attempts < max_attempts
+          THEN now() + make_interval(secs => LEAST(300, (2 ^ LEAST(attempts, 8))::int)) ELSE available_at END,
         locked_by = NULL, lease_expires_at = NULL,
-        updated_at = now(), finished_at = now()
+        updated_at = now(), finished_at = CASE WHEN $3 = 'failed' AND attempts < max_attempts THEN NULL ELSE now() END
     WHERE id = $1 AND locked_by = $2 AND status = 'running'
   `, [job.id, workerId, status, JSON.stringify(result), errorMessage]);
 }
