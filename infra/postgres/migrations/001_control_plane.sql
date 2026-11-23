@@ -71,8 +71,5 @@ CREATE TABLE IF NOT EXISTS audit_events (
 CREATE INDEX IF NOT EXISTS audit_events_workspace_created_idx
   ON audit_events (workspace_id, created_at DESC);
 
-INSERT INTO schema_migrations(version, checksum)
-VALUES ('001_control_plane', 'sha256:pending-release-checksum')
-ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
