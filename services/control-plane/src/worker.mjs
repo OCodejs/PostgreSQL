@@ -7,7 +7,7 @@ const pollMs = Math.min(30_000, Math.max(250, Number(process.env.WORKER_POLL_MS 
 let stopping = false;
 
 async function recoverExpiredLeases(client) {
-  await client.query(\`UPDATE jobs SET status = 'cancelled', updated_at = now(), finished_at = now() WHERE status = 'queued' AND cancel_requested_at IS NOT NULL\`);
+  await client.query(`UPDATE jobs SET status = 'cancelled', updated_at = now(), finished_at = now() WHERE status = 'queued' AND cancel_requested_at IS NOT NULL`);
   await client.query(`
     UPDATE jobs
     SET status = CASE WHEN attempts >= max_attempts THEN 'dead_letter' ELSE 'queued' END,
