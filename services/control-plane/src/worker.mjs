@@ -67,7 +67,7 @@ async function finishJob(client, job, status, result, errorMessage = null) {
 async function runJob(client, job) {
   // Deliberately allowlist only a no-op probe. User code execution is disabled.
   if (job.kind !== 'noop') {
-    await finishJob(client, job, 'failed', { accepted: false }, 'unsupported_job_kind');
+    await finishJob(client, job, 'dead_letter', { accepted: false }, 'unsupported_job_kind');
     return;
   }
 
