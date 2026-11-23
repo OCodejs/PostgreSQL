@@ -1,0 +1,49 @@
+name: Identity Service CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'services/identity/**'
+      - '.github/workflows/identity-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: identity-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: services/identity
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://test:test@127.0.0.1:5432/identity_test
+      SESSION_SECRET: ci-only-session-secret-not-used-outside-tests-0001
+      CSRF_SECRET: ci-only-csrf-secret-distinct-from-session-secret-0002
+      APP_BASE_URL: http://localhost:3000
+      WEB_ORIGINS: http://localhost:3000,http://localhost:5173
+      SMTP_HOST:
+      SMTP_USER:
+      SMTP_PASSWORD:
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Confirm no migration is run by CI
+        run: test -f db/migrations/001_initial.sql
