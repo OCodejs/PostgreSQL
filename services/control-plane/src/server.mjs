@@ -2,9 +2,26 @@ import { createServer } from 'node:http';
 import { getPool, closePool } from './db.mjs';
 
 const port = Number(process.env.PORT || 8787);
+const allowedOrigins = new Set(
+  (process.env.CONTROL_PLANE_CORS_ORIGINS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+);
 const server = createServer(async (req, res) => {
   res.setHeader('content-type', 'application/json; charset=utf-8');
   res.setHeader('cache-control', 'no-store');
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader('access-control-allow-origin', origin);
+    res.setHeader('vary', 'Origin');
+  }
+  if (req.method === 'OPTIONS' && origin && allowedOrigins.has(origin)) {
+    res.setHeader('access-control-allow-methods', 'GET, OPTIONS');
+    res.setHeader('access-control-allow-headers', 'Accept');
+    res.writeHead(204).end();
+    return;
+  }
 
   if (req.method === 'GET' && req.url === '/healthz') {
     res.writeHead(200).end(JSON.stringify({ service: 'ocodejs-control-plane', status: 'alive' }));
