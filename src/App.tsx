@@ -55,6 +55,7 @@ import { Security2FAPanel } from './components/Security2FAPanel';
 import { CicdApiPanel } from './components/CicdApiPanel';
 import { IntegrationsHub } from './components/IntegrationsHub';
 import { ExportModal } from './components/ExportModal';
+import { InfrastructureStatus } from './components/InfrastructureStatus';
 
 export default function App() {
   const [lang, setLang] = useState<Language>('vi');
@@ -444,6 +445,8 @@ export default function App() {
             {authError}
           </div>
         )}
+
+        <InfrastructureStatus />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {activeSection === 'overview' && (
