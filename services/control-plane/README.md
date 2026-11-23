@@ -10,12 +10,18 @@ Node.js 22 service isolated from the Vite dashboard. Install dependencies in thi
 - `PORT`: API port (default 8787).
 - `WORKER_ID`, `JOB_LEASE_SECONDS`, `WORKER_POLL_MS`: worker tuning.
 
-## Endpoints
+## Identity and API
 
+- Firebase ID tokens are verified with Google's Secure Token JWKS, issuer and audience.
+- Set `FIREBASE_PROJECT_ID` to the existing dashboard project ID (`gen-lang-client-0367464144`). Do not use the unrelated sample project from another repository.
 - `GET /healthz`: process liveness only; does not claim database connectivity.
 - `GET /readyz`: performs a real PostgreSQL query. Returns 503 when unconfigured or disconnected.
+- `GET/POST /api/v1/workspaces`: list and create workspaces for the authenticated Firebase UID.
+- `GET /api/v1/workspaces/:id`: read only after membership verification.
+- `POST /api/v1/workspaces/:id/jobs`: editor/owner only; requires `Idempotency-Key`; currently accepts only `kind=noop`.
+- `POST /api/v1/jobs/:id/cancel`: editor/owner only; queued jobs cancel immediately and running jobs receive a cooperative cancellation request.
 
-No workspace API routes are exposed yet. Do not expose this service publicly until Firebase ID-token verification, workspace RBAC, rate limiting and audit enforcement are implemented.
+Set `CONTROL_PLANE_CORS_ORIGINS` to an explicit comma-separated allowlist of dashboard origins. No wildcard origin is used. All workspace and job queries are tenant-scoped through `workspace_members`. Rate limiting and additional audit coverage are still required before public exposure.
 
 ## Worker safety
 
