@@ -18,7 +18,21 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: identity_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d identity_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: services/identity
@@ -34,16 +48,17 @@ jobs:
       SMTP_PASSWORD:
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Install dependencies
-        run: npm install --ignore-scripts --no-audit --no-fund
+        run: npm install --no-audit --no-fund
       - name: Typecheck
         run: npm run typecheck
-      - name: Unit tests
-        run: npm test
       - name: Build
         run: npm run build
-      - name: Confirm no migration is run by CI
-        run: test -f db/migrations/001_initial.sql
+      - name: Apply migrations to ephemeral CI database
+        run: npm run db:migrate
+      - name: Unit and PostgreSQL integration tests
+        run: npm test
