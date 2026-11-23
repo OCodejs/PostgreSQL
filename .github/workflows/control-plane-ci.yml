@@ -1,0 +1,40 @@
+name: Control Plane CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'services/control-plane/**'
+      - 'infra/postgres/**'
+      - '.github/workflows/control-plane-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: control-plane-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: services/control-plane
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/control-plane/package.json
+      - name: Install service dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Check JavaScript syntax
+        run: npm run check
+      - name: Verify migration files exist
+        run: test -s ../../infra/postgres/migrations/001_control_plane.sql
+      - name: Confirm no production database is configured in CI
+        run: test -z "${DATABASE_URL:-}"
