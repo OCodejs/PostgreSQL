@@ -32,6 +32,8 @@ jobs:
         run: npm install --ignore-scripts --no-audit --no-fund
       - name: Check JavaScript syntax
         run: npm run check
+      - name: Run unit tests
+        run: npm test
       - name: Verify migration files exist
         run: test -s ../../infra/postgres/migrations/001_control_plane.sql
       - name: Confirm no production database is configured in CI
