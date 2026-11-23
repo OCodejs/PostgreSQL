@@ -152,6 +152,7 @@ The service package scripts are:
 - `npm run worker` — start the queue worker.
 - `npm run migrate` — apply pending SQL migrations explicitly.
 - `npm run check` — run Node.js syntax checks for service and migration scripts.
+- `npm test` — run Node.js unit tests (currently authentication fail-closed checks).
 
 No automatic migration runs during API startup.
 
@@ -279,7 +280,7 @@ Required sandbox controls include no privileged containers, no host mounts or Do
 
 The workflow `.github/workflows/control-plane-ci.yml` runs on pull requests that change the control-plane or PostgreSQL infrastructure paths, and can also be manually dispatched.
 
-It installs the service package dependencies, runs Node.js syntax checks and verifies that the migration file exists. This is a **static/syntax check**, not a PostgreSQL integration test. A green run does not prove that a database has been provisioned, migrations have been applied, Firebase tokens work end-to-end or worker concurrency is correct.
+It installs the service package dependencies, runs Node.js syntax checks, executes the Node.js unit tests and verifies that the migration file exists. The current unit tests cover missing bearer-token and missing Firebase project configuration behavior. This is still **not a PostgreSQL integration test**. A green run does not prove that a database has been provisioned, migrations have been applied, Firebase tokens work end-to-end or worker concurrency is correct.
 
 ## Troubleshooting
 
